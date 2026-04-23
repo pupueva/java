@@ -1,47 +1,23 @@
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Общий модуль: логика задачи и операции с файлами.
- * Используется ConsoleApp и WindowApp без изменений.
- *
- * Задача: для набора окружностей найти три, для которых периметр
- * треугольника с вершинами в центрах этих окружностей минимален.
- */
 public class TaskLogic {
 
-    // =========================================================
-    //  Вспомогательные математические функции
-    // =========================================================
-
-    /** Евклидово расстояние между центрами двух окружностей. */
     public static double distance(Circle a, Circle b) {
         double dx = a.x - b.x;
         double dy = a.y - b.y;
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    /** Периметр треугольника по трём вершинам (центрам окружностей). */
     public static double trianglePerimeter(Circle a, Circle b, Circle c) {
         return distance(a, b) + distance(b, c) + distance(a, c);
     }
 
-    /** Минимум из двух чисел (вместо Math.min). */
-    private static double min(double x, double y) {
-        return x < y ? x : y;
-    }
-
-    // =========================================================
-    //  Основная логика задачи
-    // =========================================================
-
-    /**
-     * Находит тройку окружностей из списка, для которых периметр
-     * треугольника с вершинами в центрах минимален.
-     *
-     * @param circles список окружностей (не менее 3)
-     * @return CircleTriple с минимальным периметром, или null если < 3 окружностей
-     */
     public static CircleTriple findMinPerimeterTriple(List<Circle> circles) {
         if (circles == null || circles.size() < 3) return null;
 
@@ -66,16 +42,8 @@ public class TaskLogic {
         return best;
     }
 
-    // =========================================================
-    //  Чтение / запись файлов
-    // =========================================================
-
-    /**
-     * Читает список окружностей из файла.
-     * Формат: каждая строка — "x y r"
-     */
     public static List<Circle> readCirclesFromFile(String filename) throws IOException {
-        List<Circle> list = new ArrayList<>();
+        List<Circle> list = new ArrayList<Circle>();
         BufferedReader reader = new BufferedReader(new FileReader(filename));
         try {
             String line;
@@ -96,15 +64,11 @@ public class TaskLogic {
         return list;
     }
 
-    /**
-     * Записывает список окружностей в файл.
-     * Формат: каждая строка — "x y r"
-     */
     public static void writeCirclesToFile(String filename, List<Circle> circles) throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
         try {
-            for (Circle c : circles) {
-                writer.write(c.toFileLine());
+            for (int i = 0; i < circles.size(); i++) {
+                writer.write(circles.get(i).toFileLine());
                 writer.newLine();
             }
         } finally {
@@ -112,9 +76,6 @@ public class TaskLogic {
         }
     }
 
-    /**
-     * Записывает результат (тройку + периметр) в выходной файл.
-     */
     public static void writeResultToFile(String filename, CircleTriple result) throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
         try {
@@ -123,11 +84,11 @@ public class TaskLogic {
             } else {
                 writer.write("Тройка окружностей с минимальным периметром треугольника центров:");
                 writer.newLine();
-                writer.write("  " + result.a.toFileLine() + "   # x y r");
+                writer.write("  " + result.a.toFileLine());
                 writer.newLine();
-                writer.write("  " + result.b.toFileLine() + "   # x y r");
+                writer.write("  " + result.b.toFileLine());
                 writer.newLine();
-                writer.write("  " + result.c.toFileLine() + "   # x y r");
+                writer.write("  " + result.c.toFileLine());
                 writer.newLine();
                 writer.write(String.format("Периметр = %.6f", result.perimeter));
                 writer.newLine();
@@ -137,27 +98,21 @@ public class TaskLogic {
         }
     }
 
-    // =========================================================
-    //  Конвертация список ↔ двумерный массив (для JTable)
-    // =========================================================
-
-    /** Преобразует список окружностей в двумерный массив строк для JTable. */
     public static String[][] circlesToTable(List<Circle> circles) {
         String[][] data = new String[circles.size()][3];
-        int i = 0;
-        for (Circle c : circles) {
+        for (int i = 0; i < circles.size(); i++) {
+            Circle c = circles.get(i);
             data[i][0] = String.valueOf(c.x);
             data[i][1] = String.valueOf(c.y);
             data[i][2] = String.valueOf(c.r);
-            i++;
         }
         return data;
     }
 
-    /** Преобразует двумерный массив строк из JTable в список окружностей. */
     public static List<Circle> tableToCircles(String[][] data) {
-        List<Circle> list = new ArrayList<>();
-        for (String[] row : data) {
+        List<Circle> list = new ArrayList<Circle>();
+        for (int i = 0; i < data.length; i++) {
+            String[] row = data[i];
             if (row[0] == null || row[0].trim().isEmpty()) continue;
             try {
                 double x = Double.parseDouble(row[0].trim());
@@ -165,33 +120,127 @@ public class TaskLogic {
                 double r = Double.parseDouble(row[2].trim());
                 list.add(new Circle(x, y, r));
             } catch (Exception ignored) {
-                // Пропускаем незаполненные / некорректные строки
             }
         }
         return list;
     }
 
-    // =========================================================
-    //  Разбор аргументов командной строки
-    // =========================================================
+    public static List<List<Triangle>> groupBySimilarity(List<Triangle> triangles) {
+        List<List<Triangle>> groups = new ArrayList<List<Triangle>>();
+        boolean[] assigned = new boolean[triangles.size()];
 
-    public static class InputArgs {
-        public String inputFile;
-        public String outputFile;
+        for (int i = 0; i < triangles.size(); i++) {
+            if (assigned[i]) continue;
+            List<Triangle> group = new ArrayList<Triangle>();
+            group.add(triangles.get(i));
+            assigned[i] = true;
+            for (int j = i + 1; j < triangles.size(); j++) {
+                if (!assigned[j] && Triangle.areSimilar(triangles.get(i), triangles.get(j))) {
+                    group.add(triangles.get(j));
+                    assigned[j] = true;
+                }
+            }
+            groups.add(group);
+        }
+        return groups;
     }
 
-    /**
-     * Разбирает аргументы командной строки.
-     * Форматы:
-     *   program input.txt output.txt
-     *   program -i input.txt -o output.txt
-     *   program --input-file=input.txt --output-file=output.txt
-     */
+    public static List<Triangle> readTrianglesFromFile(String filename) throws IOException {
+        List<Triangle> list = new ArrayList<Triangle>();
+        BufferedReader reader = new BufferedReader(new FileReader(filename));
+        try {
+            String line;
+            int lineNum = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNum++;
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                try {
+                    list.add(Triangle.fromFileLine(line));
+                } catch (Exception e) {
+                    throw new IOException("Ошибка в строке " + lineNum + ": " + e.getMessage());
+                }
+            }
+        } finally {
+            reader.close();
+        }
+        return list;
+    }
+
+    public static void writeTrianglesToFile(String filename, List<Triangle> triangles) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+        try {
+            for (int i = 0; i < triangles.size(); i++) {
+                writer.write(triangles.get(i).toFileLine());
+                writer.newLine();
+            }
+        } finally {
+            writer.close();
+        }
+    }
+
+    public static void writeGroupsToFile(String filename, List<List<Triangle>> groups) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+        try {
+            writer.write("Подмножества подобных треугольников (" + groups.size() + " групп):");
+            writer.newLine();
+            for (int g = 0; g < groups.size(); g++) {
+                List<Triangle> group = groups.get(g);
+                writer.write("Группа " + (g + 1) + " (" + group.size() + " треугольн.):");
+                writer.newLine();
+                for (int i = 0; i < group.size(); i++) {
+                    writer.write("  " + group.get(i).toString());
+                    writer.newLine();
+                }
+            }
+        } finally {
+            writer.close();
+        }
+    }
+
+    public static String[][] trianglesToTable(List<Triangle> triangles) {
+        String[][] data = new String[triangles.size()][6];
+        for (int i = 0; i < triangles.size(); i++) {
+            Triangle t = triangles.get(i);
+            data[i][0] = String.valueOf(t.x1);
+            data[i][1] = String.valueOf(t.y1);
+            data[i][2] = String.valueOf(t.x2);
+            data[i][3] = String.valueOf(t.y2);
+            data[i][4] = String.valueOf(t.x3);
+            data[i][5] = String.valueOf(t.y3);
+        }
+        return data;
+    }
+
+    public static List<Triangle> tableToTriangles(String[][] data) {
+        List<Triangle> list = new ArrayList<Triangle>();
+        for (int i = 0; i < data.length; i++) {
+            String[] row = data[i];
+            if (row[0] == null || row[0].trim().isEmpty()) continue;
+            try {
+                double x1 = Double.parseDouble(row[0].trim());
+                double y1 = Double.parseDouble(row[1].trim());
+                double x2 = Double.parseDouble(row[2].trim());
+                double y2 = Double.parseDouble(row[3].trim());
+                double x3 = Double.parseDouble(row[4].trim());
+                double y3 = Double.parseDouble(row[5].trim());
+                Triangle t = new Triangle(x1, y1, x2, y2, x3, y3);
+                if (t.isValid()) list.add(t);
+            } catch (Exception ignored) {
+            }
+        }
+        return list;
+    }
+
+    public static class InputArgs {
+        public String inputFile = null;
+        public String outputFile = null;
+    }
+
     public static InputArgs parseCmdArgs(String[] args) {
         InputArgs result = new InputArgs();
         if (args == null || args.length == 0) return result;
-
-        List<String> positional = new ArrayList<>();
+        List<String> positional = new ArrayList<String>();
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             if (arg.startsWith("--input-file=")) {
@@ -199,14 +248,16 @@ public class TaskLogic {
             } else if (arg.startsWith("--output-file=")) {
                 result.outputFile = arg.substring("--output-file=".length());
             } else if (arg.equals("-i") && i + 1 < args.length) {
-                result.inputFile = args[++i];
+                i++;
+                result.inputFile = args[i];
             } else if (arg.equals("-o") && i + 1 < args.length) {
-                result.outputFile = args[++i];
+                i++;
+                result.outputFile = args[i];
             } else if (!arg.startsWith("-")) {
                 positional.add(arg);
             }
         }
-        if (result.inputFile == null && positional.size() >= 1) result.inputFile  = positional.get(0);
+        if (result.inputFile == null && positional.size() >= 1) result.inputFile = positional.get(0);
         if (result.outputFile == null && positional.size() >= 2) result.outputFile = positional.get(1);
         return result;
     }

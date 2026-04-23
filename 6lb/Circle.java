@@ -1,11 +1,7 @@
-/**
- * Составной тип данных: окружность (круг).
- * Хранит координаты центра (x, y) и радиус r.
- */
 public class Circle {
-    public double x;   // координата центра по X
-    public double y;   // координата центра по Y
-    public double r;   // радиус
+    public double x;
+    public double y;
+    public double r;
 
     public Circle(double x, double y, double r) {
         this.x = x;
@@ -13,18 +9,15 @@ public class Circle {
         this.r = r;
     }
 
-    /** Строковое представление для вывода. */
     @Override
     public String toString() {
         return String.format("Circle(x=%.2f, y=%.2f, r=%.2f)", x, y, r);
     }
 
-    /** Формат для записи в файл: "x y r" */
     public String toFileLine() {
         return x + " " + y + " " + r;
     }
 
-    /** Разбор строки файла "x y r" в объект Circle. */
     public static Circle fromFileLine(String line) {
         String[] parts = line.trim().split("\\s+");
         if (parts.length < 3) throw new IllegalArgumentException("Неверный формат строки: " + line);
