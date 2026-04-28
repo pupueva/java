@@ -14,12 +14,15 @@ public class CircleTriple {
     @Override
     public String toString() {
         return String.format(
-            "Тройка окружностей с минимальным периметром треугольника центров:\n" +
-            "  1: %s\n" +
-            "  2: %s\n" +
-            "  3: %s\n" +
-            "  Периметр треугольника центров = %.6f",
-            a, b, c, perimeter
+                "Три точки с минимальным периметром треугольника:\n" +
+                        "  1: (x=%.4f, y=%.4f)\n" +
+                        "  2: (x=%.4f, y=%.4f)\n" +
+                        "  3: (x=%.4f, y=%.4f)\n" +
+                        "  Периметр = %.6f",
+                a.x, a.y,
+                b.x, b.y,
+                c.x, c.y,
+                perimeter
         );
     }
 }
