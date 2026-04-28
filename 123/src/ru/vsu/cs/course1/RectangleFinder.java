@@ -4,9 +4,10 @@ package ru.vsu.cs.course1;
  * Утилита для поиска наибольшего прямоугольника из истинных значений,
  * окружённого ложными значениями или границами массива.
  *
- * Прямоугольник считается «окружённым», если каждая клетка непосредственно
- * снаружи его границ (сверху, снизу, слева, справа) либо является границей
- * массива, либо содержит false.
+ * «Окружён» означает: все клетки, смежные с прямоугольником
+ * (включая угловые диагональные соседи), содержат false или являются
+ * границей массива. То есть прямоугольник из 1-единиц не должен
+ * касаться других единиц ни по сторонам, ни по углам.
  *
  * Результат: int[4] = { row, col, height, width }
  * Если прямоугольник не найден — { -1, -1, -1, -1 }.
@@ -20,7 +21,7 @@ public class RectangleFinder {
 
     /**
      * Ищет наибольший по площади прямоугольник из true-значений,
-     * окружённый false-значениями или границами массива.
+     * окружённый false-значениями или границами массива (включая диагонали).
      *
      * @param grid двумерный булев массив (не изменяется)
      * @return { row, col, height, width } или { -1, -1, -1, -1 }
@@ -32,42 +33,42 @@ public class RectangleFinder {
         int rows = grid.length;
         int cols = grid[0].length;
 
+        // 2D prefix sum: prefix[i][j] = кол-во true в [0..i-1][0..j-1]
+        int[][] prefix = new int[rows + 1][cols + 1];
+        for (int i = 1; i <= rows; i++)
+            for (int j = 1; j <= cols; j++)
+                prefix[i][j] = (grid[i-1][j-1] ? 1 : 0)
+                        + prefix[i-1][j] + prefix[i][j-1] - prefix[i-1][j-1];
+
         int bestArea = 0;
         int bestRow = -1, bestCol = -1, bestH = -1, bestW = -1;
 
-        for (int r = 0; r < rows; r++) {
-            // heights[j] — высота непрерывного столбца из true, заканчивающегося в строке r
-            int[] heights = new int[cols];
-            for (int j = 0; j < cols; j++) {
-                if (grid[r][j]) {
-                    int h = 0;
-                    for (int i = r; i >= 0 && grid[i][j]; i--) h++;
-                    heights[j] = h;
-                }
-            }
+        for (int top = 0; top < rows; top++) {
+            for (int bottom = top; bottom < rows; bottom++) {
+                int h = bottom - top + 1;
 
-            for (int h = 1; h <= r + 1; h++) {
-                int topRow = r - h + 1;
-                int j = 0;
-                while (j < cols) {
-                    if (heights[j] < h) { j++; continue; }
+                for (int left = 0; left < cols; left++) {
+                    for (int right = left; right < cols; right++) {
+                        int w = right - left + 1;
+                        int area = h * w;
 
-                    int startCol = j;
-                    while (j < cols && heights[j] >= h) j++;
-                    int endCol = j - 1;
-                    int w = endCol - startCol + 1;
-                    int area = h * w;
+                        if (area <= bestArea) continue;
 
-                    if (isSurrounded(grid, topRow, startCol, h, w, rows, cols)) {
-                        if (area > bestArea ||
-                            (area == bestArea && (topRow < bestRow ||
-                                (topRow == bestRow && startCol < bestCol)))) {
-                            bestArea = area;
-                            bestRow  = topRow;
-                            bestCol  = startCol;
-                            bestH    = h;
-                            bestW    = w;
-                        }
+                        // Условие 1: все клетки внутри прямоугольника = true
+                        int sumInside = prefix[bottom+1][right+1]
+                                - prefix[top][right+1]
+                                - prefix[bottom+1][left]
+                                + prefix[top][left];
+                        if (sumInside != area) continue;
+
+                        // Условие 2: весь периметр снаружи (включая угловые диагонали) = false
+                        if (!isSurrounded(grid, top, left, h, w, rows, cols)) continue;
+
+                        bestArea = area;
+                        bestRow  = top;
+                        bestCol  = left;
+                        bestH    = h;
+                        bestW    = w;
                     }
                 }
             }
@@ -78,35 +79,49 @@ public class RectangleFinder {
     }
 
     /**
-     * Проверяет, что прямоугольник [topRow, startCol] x [h, w]
-     * со всех сторон окружён false или границей массива.
+     * Проверяет, что прямоугольник [top, left] размером [h x w]
+     * окружён false или границей со всех сторон, ВКЛЮЧАЯ угловые диагонали.
+     *
+     * Проверяемая зона — рамка вокруг прямоугольника толщиной 1:
+     *   строка (top-1):    столбцы [left-1 .. right+1]   ← включает углы
+     *   строка (bottom+1): столбцы [left-1 .. right+1]   ← включает углы
+     *   столбец (left-1):  строки  [top .. bottom]        ← боковые (без углов)
+     *   столбец (right+1): строки  [top .. bottom]        ← боковые (без углов)
      */
     private static boolean isSurrounded(
-            boolean[][] grid, int topRow, int startCol, int h, int w,
+            boolean[][] grid, int top, int left, int h, int w,
             int rows, int cols) {
 
-        int bottomRow = topRow + h - 1;
-        int endCol    = startCol + w - 1;
+        int bottom = top + h - 1;
+        int right  = left + w - 1;
 
-        // Строка сверху
-        if (topRow > 0)
-            for (int j = startCol; j <= endCol; j++)
-                if (grid[topRow - 1][j]) return false;
+        // Строка сверху — включая угловые клетки (left-1) и (right+1)
+        if (top > 0) {
+            int jStart = Math.max(0, left - 1);
+            int jEnd   = Math.min(cols - 1, right + 1);
+            for (int j = jStart; j <= jEnd; j++)
+                if (grid[top - 1][j]) return false;
+        }
 
-        // Строка снизу
-        if (bottomRow < rows - 1)
-            for (int j = startCol; j <= endCol; j++)
-                if (grid[bottomRow + 1][j]) return false;
+        // Строка снизу — включая угловые клетки
+        if (bottom < rows - 1) {
+            int jStart = Math.max(0, left - 1);
+            int jEnd   = Math.min(cols - 1, right + 1);
+            for (int j = jStart; j <= jEnd; j++)
+                if (grid[bottom + 1][j]) return false;
+        }
 
-        // Столбец слева
-        if (startCol > 0)
-            for (int i = topRow; i <= bottomRow; i++)
-                if (grid[i][startCol - 1]) return false;
+        // Столбец слева — только боковые строки (углы уже проверены выше)
+        if (left > 0) {
+            for (int i = top; i <= bottom; i++)
+                if (grid[i][left - 1]) return false;
+        }
 
-        // Столбец справа
-        if (endCol < cols - 1)
-            for (int i = topRow; i <= bottomRow; i++)
-                if (grid[i][endCol + 1]) return false;
+        // Столбец справа — только боковые строки
+        if (right < cols - 1) {
+            for (int i = top; i <= bottom; i++)
+                if (grid[i][right + 1]) return false;
+        }
 
         return true;
     }
@@ -129,7 +144,6 @@ public class RectangleFinder {
 
     /**
      * Конвертирует int[][] в boolean[][] (0 = false, иное = true).
-     * Удобно для использования совместно с ArrayShiftUtils.
      */
     public static boolean[][] fromIntArray(int[][] array) {
         if (array == null) return new boolean[0][0];
