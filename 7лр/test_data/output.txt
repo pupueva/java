@@ -1,0 +1,62 @@
+
+ RomanConverter.toRoman 
+  ✓ 1 -> I
+  ✓ 4 -> IV
+  ✓ 9 -> IX
+  ✓ 42 -> XLII
+  ✓ 99 -> XCIX
+  ✓ 444 -> CDXLIV
+  ✓ 1994 -> MCMXCIV
+  ✓ 2026 -> MMXXVI
+  ✓ 3999 -> MMMCMXCIX
+
+ Граничные / ошибочные 
+  ✓ 0 -> exception  (Число должно быть в диапазоне 1-3999, получено: 0)
+  ✓ -1 -> exception  (Число должно быть в диапазоне 1-3999, получено: -1)
+  ✓ 4000 -> exception  (Число должно быть в диапазоне 1-3999, получено: 4000)
+
+ RomanConverter.toArabic 
+  ✓ I -> 1
+  ✓ IV -> 4
+  ✓ IX -> 9
+  ✓ LVIII -> 58
+  ✓ MCMXCIV -> 1994
+  ✓ MMMCMXCIX -> 3999
+  ✓ xiv -> 14 (lowercase)
+  ✓ MMDCCCLXXXVIII -> 2888
+
+ Некорректные 
+  ✓ empty  (Строка не может быть пустой)
+  ✓ null  (Строка не может быть пустой)
+  ✓ IIII  (Некорректное римское число: IIII)
+  ✓ VV  (Некорректное римское число: VV)
+  ✓ IC  (Некорректное римское число: IC)
+  ✓ ABC  (Некорректное римское число: ABC)
+  ✓ MMMM  (Некорректное римское число: MMMM)
+
+ Round-trip 1..3999 
+  ✓ All 3999 numbers OK
+
+ WordExtractor.extract 
+  ✓ eng words len=2
+  ✓ rus words len=3 no dupes
+  ✓ latin+digits len=2 no dupes
+  ✓ no words len=5
+  ✓ empty string
+  ✓ null
+  ✓ digits len=1
+  ✓ separators: comma tab newline
+  ✓ words with YO len=4
+
+ File-based tests 
+  ✓ test1: 1994->MCMXCIV
+  ✓ test2: MCMXCIV->1994
+  ✓ test3: 'cat' len=3
+  ✓ test3: 'Кот' len=3
+  ✓ test5: 'Ёлка' len=4
+  ✓ test5: 'ёжик' len=4
+  ✓ test5: 'a1b2' len=4
+
+
+  TOTAL passed: 44, failed: 0
+
